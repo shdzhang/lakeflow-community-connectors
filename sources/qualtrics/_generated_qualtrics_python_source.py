@@ -1241,21 +1241,29 @@ def register_lakeflow_source(spark):
             Returns:
                 Tuple of (iterator of response records, new offset)
             """
+            # DEBUG: Log received options to diagnose surveyId filtering issue
+            logger.warning(f"DEBUG: _read_survey_responses received table_options = {table_options}")
+            logger.warning(f"DEBUG: table_options.get('surveyId') = {table_options.get('surveyId')}")
+
             survey_id_input = table_options.get("surveyId")
 
+            # TEMPORARY: Require surveyId to be provided (disable auto-consolidation for debugging)
+            if not survey_id_input:
+                raise ValueError(
+                    "surveyId is required in table_options for survey_responses table. "
+                    "Auto-consolidation is temporarily disabled for debugging. "
+                    f"Received table_options: {table_options}"
+                )
+
             # Single survey (no comma) - use simple offset structure for backward compatibility
-            if survey_id_input and "," not in survey_id_input:
+            if "," not in survey_id_input:
                 return self._read_single_survey_responses(survey_id_input.strip(), start_offset)
 
-            # Multiple surveys (comma-separated) or all surveys -
-            # use consolidated path with per-survey offsets
-            if survey_id_input:
-                logger.info(
-                    "Multiple surveyIds provided, consolidating "
-                    "responses from specified surveys"
-                )
-            else:
-                logger.info("No surveyId provided, auto-consolidating responses from all surveys")
+            # Multiple surveys (comma-separated)
+            logger.info(
+                "Multiple surveyIds provided, consolidating "
+                "responses from specified surveys"
+            )
             return self._read_all_survey_responses(start_offset, table_options)
 
         def _read_single_survey_responses(
