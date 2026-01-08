@@ -753,7 +753,8 @@ class LakeflowConnect:  # pylint: disable=too-many-instance-attributes
             List of survey IDs
         """
         # Check if specific survey IDs are provided
-        survey_id_input = table_options.get("surveyId")
+        # Unity Catalog lowercases option keys, so check both cases
+        survey_id_input = table_options.get("surveyId") or table_options.get("surveyid")
         if survey_id_input:
             # Parse comma-separated list, strip whitespace
             survey_ids = [sid.strip() for sid in survey_id_input.split(",") if sid.strip()]
@@ -902,7 +903,8 @@ class LakeflowConnect:  # pylint: disable=too-many-instance-attributes
         Returns:
             Tuple of (iterator of survey definition records, offset dict)
         """
-        survey_id_input = table_options.get("surveyId")
+        # Unity Catalog lowercases option keys, so check both cases
+        survey_id_input = table_options.get("surveyId") or table_options.get("surveyid")
 
         # Single survey (no comma) - use simple offset structure for backward compatibility
         if survey_id_input and "," not in survey_id_input:
@@ -1049,29 +1051,22 @@ class LakeflowConnect:  # pylint: disable=too-many-instance-attributes
         Returns:
             Tuple of (iterator of response records, new offset)
         """
-        # DEBUG: Log received options to diagnose surveyId filtering issue
-        logger.warning(f"DEBUG: _read_survey_responses received table_options = {table_options}")
-        logger.warning(f"DEBUG: table_options.get('surveyId') = {table_options.get('surveyId')}")
-
-        survey_id_input = table_options.get("surveyId")
-
-        # TEMPORARY: Require surveyId to be provided (disable auto-consolidation for debugging)
-        if not survey_id_input:
-            raise ValueError(
-                "surveyId is required in table_options for survey_responses table. "
-                "Auto-consolidation is temporarily disabled for debugging. "
-                f"Received table_options: {table_options}"
-            )
+        # Unity Catalog lowercases option keys, so check both cases
+        survey_id_input = table_options.get("surveyId") or table_options.get("surveyid")
 
         # Single survey (no comma) - use simple offset structure for backward compatibility
-        if "," not in survey_id_input:
+        if survey_id_input and "," not in survey_id_input:
             return self._read_single_survey_responses(survey_id_input.strip(), start_offset)
 
-        # Multiple surveys (comma-separated)
-        logger.info(
-            "Multiple surveyIds provided, consolidating "
-            "responses from specified surveys"
-        )
+        # Multiple surveys (comma-separated) or all surveys -
+        # use consolidated path with per-survey offsets
+        if survey_id_input:
+            logger.info(
+                "Multiple surveyIds provided, consolidating "
+                "responses from specified surveys"
+            )
+        else:
+            logger.info("No surveyId provided, auto-consolidating responses from all surveys")
         return self._read_all_survey_responses(start_offset, table_options)
 
     def _read_single_survey_responses(
@@ -1401,7 +1396,8 @@ class LakeflowConnect:  # pylint: disable=too-many-instance-attributes
         Returns:
             Tuple of (iterator of distribution records, new offset)
         """
-        survey_id_input = table_options.get("surveyId")
+        # Unity Catalog lowercases option keys, so check both cases
+        survey_id_input = table_options.get("surveyId") or table_options.get("surveyid")
 
         # Single survey (no comma) - use simple offset structure for backward compatibility
         if survey_id_input and "," not in survey_id_input:
@@ -1478,13 +1474,15 @@ class LakeflowConnect:  # pylint: disable=too-many-instance-attributes
         Returns:
             Tuple of (iterator of contact records, empty offset dict)
         """
-        directory_id = table_options.get("directoryId")
+        # Unity Catalog lowercases option keys, so check both cases
+        directory_id = table_options.get("directoryId") or table_options.get("directoryid")
         if not directory_id:
             raise ValueError(
                 "directoryId is required in table_options for mailing_list_contacts table"
             )
 
-        mailing_list_id = table_options.get("mailingListId")
+        # Unity Catalog lowercases option keys, so check both cases
+        mailing_list_id = table_options.get("mailingListId") or table_options.get("mailinglistid")
         if not mailing_list_id:
             raise ValueError(
                 "mailingListId is required in table_options for mailing_list_contacts table"
@@ -1514,7 +1512,8 @@ class LakeflowConnect:  # pylint: disable=too-many-instance-attributes
         Returns:
             Tuple of (iterator of contact records, empty offset dict)
         """
-        directory_id = table_options.get("directoryId")
+        # Unity Catalog lowercases option keys, so check both cases
+        directory_id = table_options.get("directoryId") or table_options.get("directoryid")
         if not directory_id:
             raise ValueError(
                 "directoryId is required in table_options for directory_contacts table"
@@ -1543,7 +1542,8 @@ class LakeflowConnect:  # pylint: disable=too-many-instance-attributes
         Returns:
             Tuple of (iterator of mailing list records, offset dict)
         """
-        directory_id = table_options.get("directoryId")
+        # Unity Catalog lowercases option keys, so check both cases
+        directory_id = table_options.get("directoryId") or table_options.get("directoryid")
         if not directory_id:
             raise ValueError(
                 "directoryId is required in table_options for mailing_lists table"
